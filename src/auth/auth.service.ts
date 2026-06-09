@@ -1,26 +1,73 @@
-import { Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+
+import { UsersService } from '../users/users.service';
+import { CreateUserDto } from '../users/dto/create-user.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  async register(createUserDto: CreateUserDto) {
+    const users = await this.usersService.findAll();
+
+    const existingUser = users.find(
+      (user) => user.email === createUserDto.email,
+    );
+
+    if (existingUser) {
+      throw new ConflictException('Email already exists');
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      createUserDto.password,
+      10,
+    );
+
+    return this.usersService.create({
+      ...createUserDto,
+      password: hashedPassword,
+    });
   }
 
-  findAll() {
-    return `This action returns all auth`;
-  }
+  async login(loginDto: LoginDto) {
+    const users = await this.usersService.findAll();
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
+    const user = users.find(
+      (user) => user.email === loginDto.email,
+    );
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    return {
+      access_token: await this.jwtService.signAsync(payload),
+    };
   }
 }
