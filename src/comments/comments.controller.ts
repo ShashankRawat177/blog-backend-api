@@ -7,12 +7,15 @@ import {
   Post,
   Req,
   UseGuards,
+  Patch,
+  Delete,
 } from '@nestjs/common';
 
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 
 import { JwtAuthGuard } from '../auth/strategy/jwt-auth.guard';
+import { UpdateCommentDto } from './dto/update-comment.dto';
 
 @Controller('comments')
 export class CommentsController {
@@ -42,5 +45,37 @@ export class CommentsController {
   @Get()
   findAll() {
     return this.commentsService.findAll();
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  update(
+    @Param('id', ParseIntPipe) id: number,
+
+    @Body()
+    updateCommentDto: UpdateCommentDto,
+
+    @Req()
+    req,
+  ) {
+    return this.commentsService.update(
+      id,
+      updateCommentDto,
+      req.user.id,
+      req.user.role,
+    );
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req,
+  ) {
+    return this.commentsService.remove(
+      id,
+      req.user.id,
+      req.user.role,
+    );
   }
 }

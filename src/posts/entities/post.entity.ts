@@ -5,9 +5,12 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 
 import { User } from '../../users/entities/user.entity';
+import { Tag } from '../../tags/entities/tag.entity';
 
 @Entity()
 export class Post {
@@ -44,4 +47,14 @@ export class Post {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @ManyToMany(
+    () => Tag,
+    (tag) => tag.posts,
+    {
+      cascade: true,
+    },
+  )
+  @JoinTable()
+  tags!: Tag[];
 }

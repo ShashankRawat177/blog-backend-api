@@ -7,6 +7,8 @@ import {
   Body,
   ParseIntPipe,
   UseGuards,
+  Req,
+  Patch,
 } from '@nestjs/common';
 
 import { PostsService } from './posts.service';
@@ -17,6 +19,7 @@ import { RolesGuard } from '../auth/strategy/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 import { Role } from '../users/enums/role.enum';
+import { UpdatePostDto } from './dto/update-post.dto';
 
 @Controller('posts')
 export class PostsController {
@@ -29,8 +32,12 @@ export class PostsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   create(
     @Body() createPostDto: CreatePostDto,
+    @Req() req,
   ) {
-    return this.postsService.create(createPostDto);
+    return this.postsService.create(
+      createPostDto,
+      req.user.id,
+    );
   }
 
   @Get()
@@ -46,11 +53,36 @@ export class PostsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @Roles(Role.AUTHOR, Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   remove(
     @Param('id', ParseIntPipe) id: number,
+    @Req() req,
   ) {
-    return this.postsService.remove(id);
+    return this.postsService.remove(
+      id,
+      req.user.id,
+      req.user.role,
+    );
   }
+
+  @Patch(':id')
+  @Roles(Role.AUTHOR, Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  update(
+    @Param('id', ParseIntPipe) id: number,
+
+    @Body()
+    updatePostDto: UpdatePostDto,
+
+    @Req()
+    req,
+  ) {
+    return this.postsService.update(
+      id,
+      updatePostDto,
+      req.user.id,
+      req.user.role,
+    );
+}
 }
