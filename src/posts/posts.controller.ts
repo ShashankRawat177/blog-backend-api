@@ -9,6 +9,7 @@ import {
   UseGuards,
   Req,
   Patch,
+  Query,
 } from '@nestjs/common';
 
 import { PostsService } from './posts.service';
@@ -41,15 +42,17 @@ export class PostsController {
   }
 
   @Get()
-  findAll() {
-    return this.postsService.findAll();
-  }
+  findAll(
+    @Query('page')
+    page?: string,
 
-  @Get(':id')
-  findOne(
-    @Param('id', ParseIntPipe) id: number,
+    @Query('limit')
+    limit?: string,
   ) {
-    return this.postsService.findOne(id);
+    return this.postsService.findAll(
+      Number(page) || 1,
+      Number(limit) || 10,
+    );
   }
 
   @Delete(':id')
@@ -84,5 +87,25 @@ export class PostsController {
       req.user.id,
       req.user.role,
     );
-}
+  }
+
+  @Get('search')
+  search(
+    @Query('q') query: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.postsService.search(
+      query,
+      Number(page) || 1,
+      Number(limit) || 10,
+    );
+  }
+
+  @Get(':id')
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.postsService.findOne(id);
+  }
 }

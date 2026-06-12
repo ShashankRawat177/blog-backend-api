@@ -37,11 +37,6 @@ export class Post {
   })
   commentCount!: number;
 
-  @Column({
-    default: 0,
-  })
-  shareCount!: number;
-
   @CreateDateColumn()
   createdAt!: Date;
 

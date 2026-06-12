@@ -2,6 +2,14 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe} from '
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { RolesGuard } from 'src/auth/strategy/roles.guard';
+import { JwtAuthGuard } from 'src/auth/strategy/jwt-auth.guard';
+import { UseGuards } from '@nestjs/common';
+
+import { Roles } from '../auth/decorators/roles.decorator';
+
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { Role } from './enums/role.enum';
 
 @Controller('users')
 export class UsersController {
@@ -35,6 +43,19 @@ export class UsersController {
     return this.usersService.update(
       id,
       updateUserDto,
+    );
+  }
+
+  @Patch(':id/role')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  updateRole(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateRoleDto: UpdateRoleDto,
+  ) {
+    return this.usersService.updateRole(
+      id,
+      updateRoleDto,
     );
   }
 }

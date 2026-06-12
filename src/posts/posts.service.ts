@@ -39,13 +39,32 @@ export class PostsService {
     return await this.postsRepository.save(post);
   }
 
-  async findAll() {
-    return this.postsRepository.find({
-      relations: [
-        'author',
-        'tags', 
-      ],
-    });
+  async findAll(
+    page = 1,
+    limit = 10,
+  ) {
+    const [posts, total] =
+      await this.postsRepository.findAndCount({
+        relations: [
+          'author',
+          'tags',
+        ],
+        skip: (page - 1) * limit,
+        take: limit,
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+
+    return {
+      data: posts,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(
+        total / limit,
+      ),
+    };
   }
 
   async findOne(id: number) {
@@ -121,5 +140,54 @@ export class PostsService {
     Object.assign(post, updatePostDto);
 
     return this.postsRepository.save(post);
+  }
+
+  async search(
+    query: string,
+    page = 1,
+    limit = 10,
+  ) {
+    const [posts, total] =
+      await this.postsRepository
+        .createQueryBuilder('post')
+        .leftJoinAndSelect(
+          'post.author',
+          'author',
+        )
+        .leftJoinAndSelect(
+          'post.tags',
+          'tag',
+        )
+        .where(
+          'LOWER(post.title) LIKE LOWER(:query)',
+          {
+            query: `%${query}%`,
+          },
+        )
+        .orWhere(
+          'LOWER(post.content) LIKE LOWER(:query)',
+          {
+            query: `%${query}%`,
+          },
+        )
+        .orWhere(
+          'LOWER(tag.name) LIKE LOWER(:query)',
+          {
+            query: `%${query}%`,
+          },
+        )
+        .skip((page - 1) * limit)
+        .take(limit)
+        .getManyAndCount();
+
+    return {
+      data: posts,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(
+        total / limit,
+      ),
+    };
   }
 }
